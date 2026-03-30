@@ -238,6 +238,7 @@ def execute():
         summary = f"\n执行账号总数{total}，成功：{success_count}，失败：{total - success_count}"
         print(summary)
         push_util.push_results(push_results, summary, push_config)
+        return success_count  # 返回成功数给主程序
     else:
         print(f"账号数长度[{len(user_list)}]和密码数长度[{len(passwd_list)}]不匹配，跳过执行")
         exit(1)
@@ -322,4 +323,15 @@ if __name__ == "__main__":
             print(f"多账号执行间隔：{sleep_seconds}")
             use_concurrent = False
         # endregion
-        execute()
+                # 第一次执行并记录成功个数
+        print(">>> 正在开始第一次尝试...")
+        count = execute()
+        
+        # 如果成功个数为 0（且不是因为账号配置错误），则尝试唯一一次重试
+        if count == 0:
+            print("\n[!] 检测到所有账号执行失败，GitHub Action 将在 30 秒后进行唯一一次重试...")
+            time.sleep(15)  # 等待 15 秒避开网络波动
+            print(">>> 正在开始第二次尝试（最终重试）...")
+            execute()
+        else:
+            print("\n[+] 任务执行成功，无需重试。")
